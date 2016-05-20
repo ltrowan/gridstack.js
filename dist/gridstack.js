@@ -165,13 +165,38 @@
         if (!this.float && !hasLocked) {
             nn = {x: 0, y: node.y, width: this.width, height: node.height};
         }
+
+        var displacementBuffer = node._grid.opts.displacementBuffer;
+
         while (true) {
             var collisionNode = _.find(this.nodes, _.bind(Utils._collisionNodeCheck, {node: node, nn: nn}));
             if (typeof collisionNode == 'undefined') {
                 return;
             }
-            this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
-                collisionNode.width, collisionNode.height, true);
+
+            var yDiff = node.y - node._origY;
+            console.log(yDiff);
+
+            if(yDiff > displacementBuffer){
+              // snap node down if done updating
+              if(!node._updating){
+                this.moveNode(node, node.x,
+                    Math.max(collisionNode.y + collisionNode.height, node.y),
+                    node.width, node.height, true);
+              }
+
+              // don't reloop if the collision node already moved
+              if(collisionNode.y === collisionNode._origY - node.height)
+                return;
+
+              // move the collision node up to take place of node
+              this.moveNode(collisionNode, collisionNode.x, collisionNode._origY - node.height,
+                  collisionNode.width, collisionNode.height, true);
+            }
+            else{
+              this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
+                  collisionNode.width, collisionNode.height, true);
+            }
         }
     };
 
@@ -447,14 +472,31 @@
     };
 
     GridStackEngine.prototype.endUpdate = function() {
-        _.each(this.nodes, function(n) {
-            n._origY = n.y;
-        });
         var n = _.find(this.nodes, function(n) { return n._updating; });
         if (n) {
             n._updating = false;
+            this._fixCollisions(n);
+            setNodeElAttrs(n);
         }
+        _.each(this.nodes, function(n) {
+            n._origY = n.y;
+        });
     };
+
+    /*
+     * set the node Element attrs from the node values
+     */
+    function setNodeElAttrs(node, optionalSource){
+        var source = optionalSource || node;
+        var el = node.el || node;
+
+         el 
+              .attr('data-gs-x', source.x)
+              .attr('data-gs-y', source.y)
+              .attr('data-gs-width', source.width)
+              .attr('data-gs-height', source.height)
+              .removeAttr('style');
+    }
 
     var GridStack = function(el, opts) {
         var self = this;
@@ -497,6 +539,10 @@
             opts.staticGrid = opts.static_grid;
             obsoleteOpts('static_grid', 'staticGrid');
         }
+        if (typeof opts.displacement_buffer!== 'undefined') {
+            opts.displacementBuffer = opts.displacement_buffer;
+            obsoleteOpts('displacement_buffer', 'displacementBuffer');
+        }
         if (typeof opts.is_nested !== 'undefined') {
             opts.isNested = opts.is_nested;
             obsoleteOpts('is_nested', 'isNested');
@@ -522,6 +568,7 @@
             verticalMargin: 20,
             auto: true,
             minWidth: 768,
+            displacementBuffer: 20,
             float: false,
             staticGrid: false,
             _class: 'grid-stack-instance-' + (Math.random() * 10000).toFixed(0),
@@ -582,11 +629,7 @@
                         n.el.remove();
                     }
                 } else {
-                    n.el
-                        .attr('data-gs-x', n.x)
-                        .attr('data-gs-y', n.y)
-                        .attr('data-gs-width', n.width)
-                        .attr('data-gs-height', n.height);
+                    setNodeElAttrs(n);
                     maxHeight = Math.max(maxHeight, n.y + n.height);
                 }
             });
@@ -722,12 +765,9 @@
                     self.grid.addNode(node);
 
                     self.container.append(self.placeholder);
-                    self.placeholder
-                        .attr('data-gs-x', node.x)
-                        .attr('data-gs-y', node.y)
-                        .attr('data-gs-width', node.width)
-                        .attr('data-gs-height', node.height)
-                        .show();
+                    setNodeElAttrs(self.placeholder, node);
+
+                    self.placeholder.show();
                     node.el = self.placeholder;
                     node._beforeDragX = node.x;
                     node._beforeDragY = node.y;
@@ -789,12 +829,9 @@
                     $(ui.draggable).remove();
                     node.el = el;
                     self.placeholder.hide();
-                    el
-                        .attr('data-gs-x', node.x)
-                        .attr('data-gs-y', node.y)
-                        .attr('data-gs-width', node.width)
-                        .attr('data-gs-height', node.height)
-                        .addClass(self.opts.itemClass)
+                    setNodeElAttrs(el, node);
+
+                    el.addClass(self.opts.itemClass)
                         .removeAttr('style')
                         .enableSelection()
                         .removeData('draggable')
@@ -1021,12 +1058,9 @@
 
                     if (node._temporaryRemoved) {
                         self.grid.addNode(node);
-                        self.placeholder
-                            .attr('data-gs-x', x)
-                            .attr('data-gs-y', y)
-                            .attr('data-gs-width', width)
-                            .attr('data-gs-height', height)
-                            .show();
+                        setNodeElAttrs(self.placeholder,
+                            {x: x, y: y, width: width, height: height});
+                        self.placeholder.show();
                         self.container.append(self.placeholder);
                         node.el = self.placeholder;
                         node._temporaryRemoved = false;
@@ -1089,19 +1123,12 @@
             } else {
                 self._clearRemovingTimeout(el);
                 if (!node._temporaryRemoved) {
-                    o
-                        .attr('data-gs-x', node.x)
-                        .attr('data-gs-y', node.y)
-                        .attr('data-gs-width', node.width)
-                        .attr('data-gs-height', node.height)
-                        .removeAttr('style');
+                    setNodeElAttrs(o, node);
+                    o.removeAttr('style');
                 } else {
-                    o
-                        .attr('data-gs-x', node._beforeDragX)
-                        .attr('data-gs-y', node._beforeDragY)
-                        .attr('data-gs-width', node.width)
-                        .attr('data-gs-height', node.height)
-                        .removeAttr('style');
+                    setNodeElAttrs(o, {x: node._beforeDragX, y: node._beforeDragY,
+                        width: node.width, height: node.height});
+                    o.removeAttr('style');
                     node.x = node._beforeDragX;
                     node.y = node._beforeDragY;
                     self.grid.addNode(node);
