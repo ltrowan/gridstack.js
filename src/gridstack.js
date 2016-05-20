@@ -165,16 +165,19 @@
         if (!this.float && !hasLocked) {
             nn = {x: 0, y: node.y, width: this.width, height: node.height};
         }
+
+        var displacementBuffer = node._grid.opts.displacementBuffer;
+
         while (true) {
             var collisionNode = _.find(this.nodes, _.bind(Utils._collisionNodeCheck, {node: node, nn: nn}));
             if (typeof collisionNode == 'undefined') {
                 return;
             }
 
-            var yDiff = collisionNode.y - collisionNode._origY;
+            var yDiff = node.y - node._origY;
             console.log(yDiff);
 
-            if(yDiff > 20){
+            if(yDiff > displacementBuffer){
               // snap node down if done updating
               if(!node._updating){
                 this.moveNode(node, node.x,
@@ -536,6 +539,10 @@
             opts.staticGrid = opts.static_grid;
             obsoleteOpts('static_grid', 'staticGrid');
         }
+        if (typeof opts.displacement_buffer!== 'undefined') {
+            opts.displacementBuffer = opts.displacement_buffer;
+            obsoleteOpts('displacement_buffer', 'displacementBuffer');
+        }
         if (typeof opts.is_nested !== 'undefined') {
             opts.isNested = opts.is_nested;
             obsoleteOpts('is_nested', 'isNested');
@@ -561,6 +568,7 @@
             verticalMargin: 20,
             auto: true,
             minWidth: 768,
+            displacementBuffer: 20,
             float: false,
             staticGrid: false,
             _class: 'grid-stack-instance-' + (Math.random() * 10000).toFixed(0),
