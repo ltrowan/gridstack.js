@@ -180,6 +180,7 @@
             var movingDown = (node._trackY <= node.y);
             var topOverlap =  (node.y + node.height) - collisionNode._trackY;
             var bottomOverlap = (collisionNode._trackY + collisionNode.height) - node.y;
+            var isResizing = node.el.data("resizing") === true;
             var newY = 0;
 
             if(aboveCollider){
@@ -190,7 +191,7 @@
                             node.width, node.height, true);
                     return;
                 }
-                else if(movingDown && node._updating && displacementBuffer < topOverlap){
+                else if(!isResizing && movingDown && node._updating && displacementBuffer < topOverlap){
                     // move the collision node up to take place of node
                     newY = collisionNode._trackY- node.height;
                     this.moveNode(collisionNode, collisionNode.x, newY,
@@ -1137,6 +1138,10 @@
             node._beforeDragX = node.x;
             node._beforeDragY = node.y;
 
+            if(event.type === 'resizestart'){
+              node.el.data("resizing", true);  
+            }
+
             el.resizable('option', 'minWidth', Math.ceil(cellWidth * (node.minWidth || 1)));
             el.resizable('option', 'minHeight', Math.ceil(Math.strictCellHeight * (node.minHeight || 1)));
 
@@ -1147,6 +1152,7 @@
 
         var onEndMoving = function(event, ui) {
             var o = $(this);
+            node.el.data("resizing", false);  
             if (!o.data('_gridstack_node')) {
                 return;
             }
