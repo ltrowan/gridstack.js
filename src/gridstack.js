@@ -183,55 +183,55 @@
             var newY = 0;
 
             if(aboveCollider){
-              // snap node down if done updating
-              if(opts.finalize){
-                this.moveNode(node, node.x,
-                    Math.min(collisionNode.y - node.height, node.y),
-                    node.width, node.height, true);
-                return;
-              }
-              else if(movingDown && node._updating && displacementBuffer < topOverlap){
-                  // move the collision node up to take place of node
-                  newY = collisionNode._trackY- node.height;
-                  this.moveNode(collisionNode, collisionNode.x, newY,
-                      collisionNode.width, collisionNode.height, true, true);
-                  collisionNode._trackY = newY;
-                  node._trackY = node.y - 1;
-                  return;
+                // snap node down if done updating
+                if(opts.finalize){
+                    this.moveNode(node, node.x,
+                            Math.min(collisionNode.y - node.height, node.y),
+                            node.width, node.height, true);
+                    return;
+                }
+                else if(movingDown && node._updating && displacementBuffer < topOverlap){
+                    // move the collision node up to take place of node
+                    newY = collisionNode._trackY- node.height;
+                    this.moveNode(collisionNode, collisionNode.x, newY,
+                            collisionNode.width, collisionNode.height, true, true);
+                    collisionNode._trackY = newY;
+                    node._trackY = node.y - 1;
+                    return;
                 }
                 else if(movingDown){
-                  this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
-                      collisionNode.width, collisionNode.height, true);
+                    this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
+                            collisionNode.width, collisionNode.height, true);
                 }
                 else {
-                  return;
+                    return;
                 }
             }
             else{
-              
-              // snap node up if done updating
-              if(opts.finalize){
-                  this.moveNode(node, node.x,
-                      Math.max(collisionNode.y + collisionNode.height, node.y),
-                      node.width, node.height, true);
-                return;
-              }
-              else if(!movingDown && node._updating && displacementBuffer < bottomOverlap){
-                  // move the collision node up to take place of node
-                  newY = collisionNode._trackY + node.height;
-                  this.moveNode(collisionNode, collisionNode.x, newY,
-                      collisionNode.width, collisionNode.height, true, true);
-                  collisionNode._trackY = newY;
-                  node._trackY = node.y + 1;
-                  return;
-              }
-              else if(!movingDown){
-                this.moveNode(node, node.x, collisionNode.y + collisionNode.height,
-                    node.width, node.height, true);
-              }
-              else {
-                return;
-              }
+
+                // snap node up if done updating
+                if(opts.finalize){
+                    this.moveNode(node, node.x,
+                            Math.max(collisionNode.y + collisionNode.height, node.y),
+                            node.width, node.height, true);
+                    return;
+                }
+                else if(!movingDown && node._updating && displacementBuffer < bottomOverlap){
+                    // move the collision node up to take place of node
+                    newY = collisionNode._trackY + node.height;
+                    this.moveNode(collisionNode, collisionNode.x, newY,
+                            collisionNode.width, collisionNode.height, true, true);
+                    collisionNode._trackY = newY;
+                    node._trackY = node.y + 1;
+                    return;
+                }
+                else if(!movingDown){
+                    this.moveNode(node, node.x, collisionNode.y + collisionNode.height,
+                            node.width, node.height, true);
+                }
+                else {
+                    return;
+                }
             }
         }
     };

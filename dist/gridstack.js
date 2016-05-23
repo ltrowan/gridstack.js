@@ -156,9 +156,11 @@
         return _.find(this.nodes, function(n) { return el.get(0) === n.el.get(0); });
     };
 
-    GridStackEngine.prototype._fixCollisions = function(node) {
+    GridStackEngine.prototype._fixCollisions = function(node, opts) {
         var self = this;
         this._sortNodes(-1);
+        opts = opts || {};
+        opts.finalize = !!opts.finalize;
 
         var nn = node;
         var hasLocked = Boolean(_.find(this.nodes, function(n) { return n.locked; }));
@@ -171,31 +173,65 @@
         while (true) {
             var collisionNode = _.find(this.nodes, _.bind(Utils._collisionNodeCheck, {node: node, nn: nn}));
             if (typeof collisionNode == 'undefined') {
-                return;
+              return;
             }
 
-            var yDiff = node.y - node._origY;
-            console.log(yDiff);
+            var aboveCollider = (node.y < collisionNode.y);
+            var movingDown = (node._trackY <= node.y);
+            var topOverlap =  (node.y + node.height) - collisionNode._trackY;
+            var bottomOverlap = (collisionNode._trackY + collisionNode.height) - node.y;
+            var newY = 0;
 
-            if(yDiff > displacementBuffer){
-              // snap node down if done updating
-              if(!node._updating){
-                this.moveNode(node, node.x,
-                    Math.max(collisionNode.y + collisionNode.height, node.y),
-                    node.width, node.height, true);
-              }
-
-              // don't reloop if the collision node already moved
-              if(collisionNode.y === collisionNode._origY - node.height)
-                return;
-
-              // move the collision node up to take place of node
-              this.moveNode(collisionNode, collisionNode.x, collisionNode._origY - node.height,
-                  collisionNode.width, collisionNode.height, true);
+            if(aboveCollider){
+                // snap node down if done updating
+                if(opts.finalize){
+                    this.moveNode(node, node.x,
+                            Math.min(collisionNode.y - node.height, node.y),
+                            node.width, node.height, true);
+                    return;
+                }
+                else if(movingDown && node._updating && displacementBuffer < topOverlap){
+                    // move the collision node up to take place of node
+                    newY = collisionNode._trackY- node.height;
+                    this.moveNode(collisionNode, collisionNode.x, newY,
+                            collisionNode.width, collisionNode.height, true, true);
+                    collisionNode._trackY = newY;
+                    node._trackY = node.y - 1;
+                    return;
+                }
+                else if(movingDown){
+                    this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
+                            collisionNode.width, collisionNode.height, true);
+                }
+                else {
+                    return;
+                }
             }
             else{
-              this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
-                  collisionNode.width, collisionNode.height, true);
+
+                // snap node up if done updating
+                if(opts.finalize){
+                    this.moveNode(node, node.x,
+                            Math.max(collisionNode.y + collisionNode.height, node.y),
+                            node.width, node.height, true);
+                    return;
+                }
+                else if(!movingDown && node._updating && displacementBuffer < bottomOverlap){
+                    // move the collision node up to take place of node
+                    newY = collisionNode._trackY + node.height;
+                    this.moveNode(collisionNode, collisionNode.x, newY,
+                            collisionNode.width, collisionNode.height, true, true);
+                    collisionNode._trackY = newY;
+                    node._trackY = node.y + 1;
+                    return;
+                }
+                else if(!movingDown){
+                    this.moveNode(node, node.x, collisionNode.y + collisionNode.height,
+                            node.width, node.height, true);
+                }
+                else {
+                    return;
+                }
             }
         }
     };
@@ -427,7 +463,7 @@
         return clone.getGridHeight() <= this.height;
     };
 
-    GridStackEngine.prototype.moveNode = function(node, x, y, width, height, noPack) {
+    GridStackEngine.prototype.moveNode = function(node, x, y, width, height, noPack, noFixCollisions) {
         if (typeof x != 'number') { x = node.x; }
         if (typeof y != 'number') { y = node.y; }
         if (typeof width != 'number') { width = node.width; }
@@ -452,7 +488,9 @@
 
         node = this._prepareNode(node, resizing);
 
-        this._fixCollisions(node);
+        if(!noFixCollisions) {
+          this._fixCollisions(node);
+        }
         if (!noPack) {
             this._packNodes();
             this._notify();
@@ -467,6 +505,7 @@
     GridStackEngine.prototype.beginUpdate = function(node) {
         _.each(this.nodes, function(n) {
             n._origY = n.y;
+            n._trackY = n.y;
         });
         node._updating = true;
     };
@@ -475,11 +514,12 @@
         var n = _.find(this.nodes, function(n) { return n._updating; });
         if (n) {
             n._updating = false;
-            this._fixCollisions(n);
+            this._fixCollisions(n, {finalize: true});
             setNodeElAttrs(n);
         }
         _.each(this.nodes, function(n) {
             n._origY = n.y;
+            n._trackY = n.y;
         });
     };
 
