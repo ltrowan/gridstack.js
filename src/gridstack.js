@@ -390,7 +390,7 @@
             this._addedNodes.push(_.clone(node));
         }
 
-        this._fixCollisions(node);
+        this._fixCollisions(node, {finalize: true});
         this._packNodes();
         this._notify();
         return node;
