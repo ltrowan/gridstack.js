@@ -193,10 +193,8 @@
               else if(movingDown && node._updating && displacementBuffer < topOverlap){
                   // move the collision node up to take place of node
                   newY = collisionNode._trackY- node.height;
-                  console.log(collisionNode.y, newY);
                   this.moveNode(collisionNode, collisionNode.x, newY,
                       collisionNode.width, collisionNode.height, true, true);
-                  console.log(collisionNode.y, newY);
                   collisionNode._trackY = newY;
                   node._trackY = node.y - 1;
                   return;
@@ -221,11 +219,9 @@
               else if(!movingDown && node._updating && displacementBuffer < bottomOverlap){
                   // move the collision node up to take place of node
                   newY = collisionNode._trackY + node.height;
-                  console.log(collisionNode.y, newY);
                   this.moveNode(collisionNode, collisionNode.x, newY,
                       collisionNode.width, collisionNode.height, true, true);
                   collisionNode._trackY = newY;
-                  console.log(collisionNode.y, newY);
                   node._trackY = node.y + 1;
                   return;
               }
