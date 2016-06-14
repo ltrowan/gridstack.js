@@ -192,13 +192,7 @@
                             node.width, node.height, true);
                     return;
                 }
-                else if(!isResizing && movingDown && node._updating && displacementBuffer < topOverlap){
-                    // move the collision node up to take place of node
-                    newY = collisionNode._trackY- node.height;
-                    this.moveNode(collisionNode, collisionNode.x, newY,
-                            collisionNode.width, collisionNode.height, true, true);
-                    collisionNode._trackY = newY;
-                    node._trackY = node.y - 1;
+                else if(!movingDown){
                     return;
                 }
                 else {
