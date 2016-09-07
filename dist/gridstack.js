@@ -6,7 +6,9 @@
  * @preserve
 */
 (function(factory) {
-    if (typeof define === 'function' && define.amd) {
+    if (!!jQuery && !!_) {
+        factory(jQuery, _);
+    } else if (typeof define === 'function' && define.amd) {
         define(['jquery', 'lodash', 'jquery-ui/core', 'jquery-ui/widget', 'jquery-ui/mouse', 'jquery-ui/draggable',
             'jquery-ui/resizable'], factory);
     } else if (typeof exports !== 'undefined') {
@@ -176,41 +178,35 @@
               return;
             }
 
-            var aboveCollider = (node.y < collisionNode.y);
+            var aboveCollider = (node.y <= collisionNode.y);
             var movingDown = (node._trackY <= node.y);
             var topOverlap =  (node.y + node.height) - collisionNode._trackY;
             var bottomOverlap = (collisionNode._trackY + collisionNode.height) - node.y;
+            var isResizing = node.el.data("resizing") === true;
             var newY = 0;
 
             if(aboveCollider){
                 // snap node down if done updating
                 if(opts.finalize){
+                    node.origY = node.y;
                     this.moveNode(node, node.x,
                             Math.min(collisionNode.y - node.height, node.y),
                             node.width, node.height, true);
                     return;
                 }
-                else if(movingDown && node._updating && displacementBuffer < topOverlap){
-                    // move the collision node up to take place of node
-                    newY = collisionNode._trackY- node.height;
-                    this.moveNode(collisionNode, collisionNode.x, newY,
-                            collisionNode.width, collisionNode.height, true, true);
-                    collisionNode._trackY = newY;
-                    node._trackY = node.y - 1;
+                else if(!movingDown){
                     return;
-                }
-                else if(movingDown){
-                    this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
-                            collisionNode.width, collisionNode.height, true);
                 }
                 else {
-                    return;
+                    this.moveNode(collisionNode, collisionNode.x, node.y + node.height,
+                            collisionNode.width, collisionNode.height, true);
                 }
             }
             else{
 
                 // snap node up if done updating
                 if(opts.finalize){
+                    node.origY = node.y;
                     this.moveNode(node, node.x,
                             Math.max(collisionNode.y + collisionNode.height, node.y),
                             node.width, node.height, true);
@@ -225,12 +221,9 @@
                     node._trackY = node.y + 1;
                     return;
                 }
-                else if(!movingDown){
+                else{
                     this.moveNode(node, node.x, collisionNode.y + collisionNode.height,
                             node.width, node.height, true);
-                }
-                else {
-                    return;
                 }
             }
         }
@@ -390,7 +383,7 @@
             this._addedNodes.push(_.clone(node));
         }
 
-        this._fixCollisions(node);
+        this._fixCollisions(node, {finalize: true});
         this._packNodes();
         this._notify();
         return node;
@@ -1137,6 +1130,10 @@
             node._beforeDragX = node.x;
             node._beforeDragY = node.y;
 
+            if(event.type === 'resizestart'){
+              node.el.data("resizing", true);  
+            }
+
             el.resizable('option', 'minWidth', Math.ceil(cellWidth * (node.minWidth || 1)));
             el.resizable('option', 'minHeight', Math.ceil(Math.strictCellHeight * (node.minHeight || 1)));
 
@@ -1147,6 +1144,7 @@
 
         var onEndMoving = function(event, ui) {
             var o = $(this);
+            node.el.data("resizing", false);  
             if (!o.data('_gridstack_node')) {
                 return;
             }

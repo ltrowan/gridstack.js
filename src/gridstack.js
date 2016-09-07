@@ -6,7 +6,9 @@
  * @preserve
 */
 (function(factory) {
-    if (typeof define === 'function' && define.amd) {
+    if (!!jQuery && !!_) {
+        factory(jQuery, _);
+    } else if (typeof define === 'function' && define.amd) {
         define(['jquery', 'lodash', 'jquery-ui/core', 'jquery-ui/widget', 'jquery-ui/mouse', 'jquery-ui/draggable',
             'jquery-ui/resizable'], factory);
     } else if (typeof exports !== 'undefined') {
